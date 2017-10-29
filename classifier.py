@@ -2,14 +2,16 @@
 # coding=utf8
 
 from train_data import load_dataset, load_feature_scaler
-from feature_utils import sliding_window_search, draw_boxes
-from configure import default_feature_cfg
+from feature_utils import draw_boxes, single_window_features
+from sliding_window import sliding_window_search
+from configure import sliding_window_cfg, default_feature_cfg
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import os.path as osp
 import pickle
+from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn import svm
@@ -24,16 +26,24 @@ def train_classifier():
     # Split up data into randomized training and test sets
     rand_state = np.random.randint(0, 10000)
     train_features, test_features, train_labels, test_labels = \
-        train_test_split(features, labels, test_size=0.1, random_state=rand_state)
+        train_test_split(features, labels, test_size=0.2, shuffle=True, random_state=rand_state)
 
-    t_start = time()
-    tuned_parameters = [
-        {'kernel': ['linear'], 'C': [1, 10, 100, 1000]},
-        {'kernel': ['rbf'], 'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001]},
-    ]
-    clf = GridSearchCV(svm.SVC(), tuned_parameters)
+    # shuffle the training set
+    train_features, train_labels = shuffle(train_features, train_labels)
+
+    t_start = time.time()
+    #######################################################################################
+    # following grid search takes too long to train
+    # tuned_parameters = [
+    #     {'kernel': ['linear'], 'C': [1, 10, 100, 1000]},
+    #     # {'kernel': ['rbf'], 'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001]},
+    # ]
+    # clf = GridSearchCV(svm.SVC(), tuned_parameters)
+    #######################################################################################
+    tuned_parameters = {'C': [1, 10]}
+    clf = GridSearchCV(svm.LinearSVC(), tuned_parameters)
     clf.fit(train_features, train_labels)
-    print("tuning the svc model with following parameters takes %.2fs" % (time() - t_start,))
+    print("tuning the svc model with following parameters takes %.2fs" % (time.time() - t_start,))
     print(tuned_parameters)
 
     print("Best parameters set found on development set:")
@@ -66,26 +76,62 @@ def get_classifier(force_retrain=False):
 
     classifier = train_classifier()
     with open(classifier_cache_path, "wb") as f:
-        pickle.dump(classifier)
+        pickle.dump(classifier, f)
     return classifier
 
 
-def test_one_image(img_path):
+def test_one_frame(img_path):
     img = cv2.imread(img_path)
     classifier = get_classifier()
     feature_scaler = load_feature_scaler()
-    img_for_draw = np.copy(img)
-    ystart = 400
-    ystop = 656
-    scales = np.arange(1.5, 0.4, -0.25)
-    for scale in scales:
-        boxes = sliding_window_search(img, ystart, ystop, scale, classifier, feature_scaler, default_feature_cfg)
-        draw_boxes(img_for_draw, boxes)
+    img_for_draw = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    sliding_cfg = sliding_window_cfg
+    # sliding_cfg = {
+    #     "scales": (1, ),
+    #     "y_start_stop": ((400, 465), ),
+    # }
+    search_scales = sliding_cfg["scales"]
+    y_start_stops = sliding_cfg["y_start_stop"]
+    x_start_stops = sliding_cfg["x_start_stop"]
+    detected_boxes = []
+    for i, scale in enumerate(search_scales):
+        y_start = y_start_stops[i][0]
+        y_stop = y_start_stops[i][1]
+        x_start = x_start_stops[i][0]
+        x_stop = x_start_stops[i][1]
+        boxes = sliding_window_search(img, y_start, y_stop, x_start, x_stop, scale,
+                                      classifier, feature_scaler, default_feature_cfg)
+        detected_boxes.extend(boxes)
 
-    fig, axes = plt.subplots(1, 1, figsize=(20, 10))
+    draw_boxes(img_for_draw, detected_boxes)
+
+    fig, axes = plt.subplots(1, 1)
     axes.imshow(img_for_draw)
     plt.show()
 
 
+def test_one_sample(img_path):
+    img = cv2.imread(img_path)
+    feature = single_window_features(img, default_feature_cfg)
+    feature = feature.reshape(1, -1)
+    feature_scaler = load_feature_scaler()
+    scaled_feature = feature_scaler.transform(feature)
+    classifier = get_classifier()
+    label = classifier.predict(scaled_feature)
+    print("%s: %d" % (img_path, label))
+
 if __name__ == "__main__":
-    test_one_image("test_images/test6.jpg")
+    test_one_frame("test_images/test6.jpg")
+    #test_one_frame("/home/daiguozhou/girl.jpg")
+    # test_one_sample("dataset/vehicles/GTI_Far/image0005.png")
+    # test_one_sample("dataset/vehicles/GTI_Left/image0009.png")
+    # test_one_sample("dataset/vehicles/GTI_MiddleClose/image0000.png")
+    # test_one_sample("dataset/vehicles/GTI_Right/image0035.png")
+    # test_one_sample("dataset/vehicles/KITTI_extracted/10.png")
+    # print()
+    # test_one_sample("dataset/non-vehicles/GTI/image1.png")
+    # test_one_sample("dataset/non-vehicles/GTI/image4.png")
+    # test_one_sample("dataset/non-vehicles/GTI/image6.png")
+    # test_one_sample("dataset/non-vehicles/Extras/extra1.png")
+    # test_one_sample("dataset/non-vehicles/Extras/extra6.png")
+    #test_one_sample("debug/0_0.jpg")
