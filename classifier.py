@@ -16,6 +16,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn import svm
 import time
+import glob
 
 classifier_cache_path = osp.join(osp.dirname(osp.abspath(__file__)), "classifier.p")
 
@@ -26,7 +27,7 @@ def train_classifier():
     # Split up data into randomized training and test sets
     rand_state = np.random.randint(0, 10000)
     train_features, test_features, train_labels, test_labels = \
-        train_test_split(features, labels, test_size=0.2, shuffle=True, random_state=rand_state)
+        train_test_split(features, labels, test_size=0.2, random_state=rand_state)
 
     # shuffle the training set
     train_features, train_labels = shuffle(train_features, train_labels)
@@ -104,10 +105,12 @@ def test_one_frame(img_path):
         detected_boxes.extend(boxes)
 
     draw_boxes(img_for_draw, detected_boxes)
-
-    fig, axes = plt.subplots(1, 1)
-    axes.imshow(img_for_draw)
-    plt.show()
+    file_name = img_path.split("/")[-1]
+    save_path = "test_images/test_results/" + file_name
+    cv2.imwrite(save_path, img_for_draw[:, :, [2, 1, 0]])
+    # fig, axes = plt.subplots(1, 1)
+    # axes.imshow(img_for_draw)
+    # plt.show()
 
 
 def test_one_sample(img_path):
@@ -121,7 +124,9 @@ def test_one_sample(img_path):
     print("%s: %d" % (img_path, label))
 
 if __name__ == "__main__":
-    test_one_frame("test_images/test6.jpg")
+    test_img_list = glob.glob("test_images/mytest*.jpg")
+    for test_img_path in test_img_list:
+        test_one_frame(test_img_path)
     #test_one_frame("/home/daiguozhou/girl.jpg")
     # test_one_sample("dataset/vehicles/GTI_Far/image0005.png")
     # test_one_sample("dataset/vehicles/GTI_Left/image0009.png")

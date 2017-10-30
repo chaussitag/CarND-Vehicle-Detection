@@ -21,7 +21,7 @@ class VehicleDetector(object):
     def __init__(self):
         self._heat_maps = []
         self._heat_threshold = 5
-        self._max_kept = 4
+        self._max_kept = 5
         self._classifier = get_classifier()
         self._feature_scaler = load_feature_scaler()
         self._frame_id = 0
@@ -58,7 +58,7 @@ class VehicleDetector(object):
                 # Add += 1 for all pixels inside each bbox
                 # Assuming each "box" takes the form ((x1, y1), (x2, y2))
                 heat_map[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
-            # remove those only detected once
+            # # remove those only detected once
             heat_map[heat_map <= 1] = 0
             self.append_heat_map(heat_map)
             #############################################

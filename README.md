@@ -57,13 +57,13 @@ Here is an example using the `HSV` color space and HOG parameters of `orientatio
 
 I experimented with a number of different  color spaces and color channels to extract HOG features, i tried different combinations of HOG parameters, and i also considered the  spatial color and histogram features. <br>
 I trained a linear SVM using combinations of HOG, spatial color and histogram features extracted from the chosen color channels, and experimented with diffenrent parameters for each kind of features. <br>
-For HLS color space the L-channel appears to be most important, followed by the S channel. I discarded RGB color space, for its undesirable properties under changing light conditions. YUV and YCrCb also provided acceptable results, but performed a little bit worse than HLS. There was relatively little variation in the final accuracy when running the SVM with some of the individual channels of HSV,HLS and LUV.<br>
-After several experiments with diffent feature combination and different parameters, I finally settled with HLS space and a value of pixels_per_cell=(8,8). Using larger values of than orient=9 did not have a striking effect and only increased the feature vector. Similarly, using values larger than cells_per_block=(2,2) did not improve results, which is why these values were chosen. So in a word, the parameters for hog feature extraction is as follows:<br>
+I discarded RGB color space, for its undesirable properties under changing light conditions. YUV and YCrCb also provided acceptable results, but after several tries i found YCrCb performed a little bit better  than YUV.  After several experiments with different color spaces, i finally chosen the YCrCb.<br>
+After several experiments with diffent feature combination and different parameters, I finally settled with YCrCb space and a value of pixels_per_cell=(16, 16). Using larger values of than orient=11 did not have a striking effect and only increased the feature vector. Similarly, using values larger than cells_per_block=(2,2) did not improve results, which is why these values were chosen. So in a word, the parameters for hog feature extraction is as follows:<br>
 ```
-color_channels="HLS"
-pixels_per_cell=(8, 8)
+color_channels="YCrCb"
+pixels_per_cell=(16, 16)
 cells_per_block=(2, 2)
-orient=9
+orient=11
 ```
 
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
@@ -95,9 +95,21 @@ The function looks up a small region of the whole image and scale the region by 
 Since bigger cars appears closer than small cars in the video frame, i use different search area for different scales, here is the configuration defined in `configure.py`:
 ```
 sliding_window_cfg = {
-    "scales": (1.5, 2.0, 3.5),
-    "y_start_stop": ((400, 528), (400, 560), (400, 660)),
-    "x_start_stop": ((650, 1281), (650, 1281), (650, 1281), ),
+    "scales": (
+        0.8, 0.9, 1.0, 1.2, 1.4, 1.5, 1.6, 1.8,
+        2.0, 2.25, 2.5, 2.8,
+        3.0, 3.25, 3.5
+    ),
+    "y_start_stop": (
+        (320, 580), (320, 580), (320, 580), (320, 580), (340, 600), (340, 600), (340, 600), (340, 620),
+        (320, 620), (320, 620), (320, 640), (360, 640),
+        (420, 640), (420, 640), (420, 660),
+    ),
+    "x_start_stop": (
+        (800, 1080), (820, 1180), (820, 1200), (820, 1181), (640, 1221), (640, 1281), (640, 1281), (640, 1281),
+        (650, 1281), (650, 1281), (660, 1281), (670, 1281),
+        (660, 1281), (660, 1281), (680, 1281),
+    ),
 }
 ```
 

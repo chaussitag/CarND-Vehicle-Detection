@@ -7,7 +7,8 @@ import numpy as np
 
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
-def sliding_window_search(img, ystart, ystop, xstart, xstop, scale, classifier, feature_scaler, feature_cfg):
+def sliding_window_search(img, ystart, ystop, xstart, xstop, scale, classifier, feature_scaler, feature_cfg,
+                          accept_score=0.8):
     # img = img.astype(np.float32) / 255
 
     roi = img[ystart:ystop, xstart:xstop, :]
@@ -105,9 +106,9 @@ def sliding_window_search(img, ystart, ystop, xstart, xstop, scale, classifier, 
             # Scale features and make a prediction
             test_features = feature_scaler.transform(np.concatenate(img_window_features).reshape(1, -1))
             # test_features = X_scaler.transform(np.hstack((shape_feat, hist_feat)).reshape(1, -1))
-            test_prediction = classifier.predict(test_features)
-
-            if test_prediction == 1:
+            # test_prediction = classifier.predict(test_features)
+            # if test_prediction == 1:
+            if classifier.decision_function(test_features) > accept_score:
                 xbox_left = np.int(xleft * scale)
                 ytop_draw = np.int(ytop * scale)
                 box_size = np.int(win_size * scale)
