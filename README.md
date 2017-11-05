@@ -39,7 +39,7 @@ You're reading it!
 
 ####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained  in function `get_hog_features()` the file called `feature_utils.py`).  
+The code for this step is contained  in function `get_hog_features()` the file called `feature_utils.py`). 
 
 I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
@@ -57,13 +57,13 @@ Here is an example using the `HSV` color space and HOG parameters of `orientatio
 
 I experimented with a number of different  color spaces and color channels to extract HOG features, i tried different combinations of HOG parameters, and i also considered the  spatial color and histogram features. <br>
 I trained a linear SVM using combinations of HOG, spatial color and histogram features extracted from the chosen color channels, and experimented with diffenrent parameters for each kind of features. <br>
-I discarded RGB color space, for its undesirable properties under changing light conditions. YUV and YCrCb also provided acceptable results, but after several tries i found YCrCb performed a little bit better  than YUV.  After several experiments with different color spaces, i finally chosen the YCrCb.<br>
-After several experiments with diffent feature combination and different parameters, I finally settled with YCrCb space and a value of pixels_per_cell=(16, 16). Using larger values of than orient=11 did not have a striking effect and only increased the feature vector. Similarly, using values larger than cells_per_block=(2,2) did not improve results, which is why these values were chosen. So in a word, the parameters for hog feature extraction is as follows:<br>
+I discarded RGB color space, for its undesirable properties under changing light conditions. YUV and YCrCb also provided acceptable results, but after several tries i found YCrCb performed a little bit better  than YUV, i finally chosen the YCrCb.<br>
+From the results of my experiments, I finally settled with YCrCb space and a value of pixels_per_cell=(8, 8). Using larger values of than orient=12 did not have a striking effect and only increased the feature vector. Similarly, using values larger than cells_per_block=(2,2) did not improve results, which is why these values were chosen. So in a word, the parameters for hog feature extraction is as follows:<br>
 ```
 color_channels="YCrCb"
-pixels_per_cell=(16, 16)
+pixels_per_cell=(8, 8)
 cells_per_block=(2, 2)
-orient=11
+orient=12
 ```
 
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
@@ -96,26 +96,28 @@ Since bigger cars appears closer than small cars in the video frame, i use diffe
 ```
 sliding_window_cfg = {
     "scales": (
-        0.8, 0.9, 1.0, 1.2, 1.4, 1.5, 1.6, 1.8,
-        2.0, 2.25, 2.5, 2.8,
-        3.0, 3.25, 3.5
+        1.0, 1.15, 1.3, 1.5, 1.8,
+        2.0, 2.5, 2.8,
+        3.0, 3.25,
     ),
+
     "y_start_stop": (
-        (320, 580), (320, 580), (320, 580), (320, 580), (340, 600), (340, 600), (340, 600), (340, 620),
-        (320, 620), (320, 620), (320, 640), (360, 640),
-        (420, 640), (420, 640), (420, 660),
+        (365, 540), (365, 600), (365, 600), (365, 600), (375, 630),
+        (370, 640), (380, 650), (380, 650),
+        (380, 650), (380, 660),
     ),
+
     "x_start_stop": (
-        (800, 1080), (820, 1180), (820, 1200), (820, 1181), (640, 1221), (640, 1281), (640, 1281), (640, 1281),
-        (650, 1281), (650, 1281), (660, 1281), (670, 1281),
-        (660, 1281), (660, 1281), (680, 1281),
+        (650, 1281), (660, 1281), (660, 1281), (640, 1281), (640, 1281),
+        (800, 1281), (800, 1281), (800, 1281),
+        (800, 1281), (800, 1281),
     ),
 }
 ```
 
 ####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using HLS 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided an acceptable result.  Here is an image demonstrating the detection result  using the sliding window search:
+Ultimately I searched on ten scales with different search areas using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided an acceptable result.  Here is an image demonstrating the detection result  using the sliding window search:
 
 ![alt text][image4]
 ---
@@ -129,7 +131,7 @@ Here's the [link to test video result](./test_video_output.mp4) and [link to pro
 ####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 The code for filtering out false positives and combining overlapping boxes was defined in member function `detect()` of  `class **VehicleDetector**` in file `vehicle_detector.py`,  after calling to `sliding_window_search()`.<br>
 
-By calling to `sliding_window_search()` with each video frame, i got the possible car positions as bounding boxes.  From the positive detections I created a heatmap and then thresholded that map with 1 as threshold. After that I sumed up the current heatmap with previous 4 heatmaps,  and then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+By calling to `sliding_window_search()` with each video frame, i got the possible car positions as bounding boxes.  From the positive detections I created a heatmap. After that I sumed up the current heatmap with previous 7 heatmaps and use 24 as a threshold to threshold the summed heat map,  and then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected. 
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
@@ -157,6 +159,6 @@ Here's an example result showing the heatmap from a series of frames of video, t
 The pipeline is probably most likely to fail in cases where vehicles (or the HOG features thereof) don't resemble those in the training dataset, but lighting and environmental conditions might also play a role (e.g. a white car against a white background). from my experiments, i found that smaller window scales tended to produce more false positives, but they also did not often correctly label the smaller, distant cars.
 I think following ideas may help improve the performance:<br>
 (1) trying more features such as LBP, SIFT etc, different features contains different information of the vehicle, an appropriate combination of well designed features may result in better result;<br>
-(2) train the model with more training data;<br>
+(2) train the model with more training data, for example including [the udaciy provided data](https://github.com/udacity/self-driving-car/tree/master/annotations)<br>
 (3) using deep learning based method, such as YoLo, Faster-RCNN. As i konw, YoLo can detect multiple objects in video in realtime and had good accuracy. Faster-RCNN is better at detection accuracy but a little bit slower than YoLo.
 
