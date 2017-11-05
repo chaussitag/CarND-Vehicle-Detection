@@ -8,7 +8,7 @@ import numpy as np
 
 # Define a single function that can extract features using hog sub-sampling and make predictions
 def sliding_window_search(img, ystart, ystop, xstart, xstop, scale, classifier, feature_scaler, feature_cfg,
-                          accept_score=0.8):
+                          accept_score=0.85):
     # img = img.astype(np.float32) / 255
 
     roi = img[ystart:ystop, xstart:xstop, :]
@@ -117,6 +117,12 @@ def sliding_window_search(img, ystart, ystop, xstart, xstop, scale, classifier, 
 
     return detected_boxes
 
+def slow_sliding_window_search(img, ystart, ystop, xstart, xstop, scale, classifier, feature_scaler, feature_cfg,
+                               accept_score=0.8):
+    winsize = int(64 * scale)
+    windows = get_slide_windows(img, (xstart, xstop), (ystart, ystop), (winsize, winsize), (0.75, 0.75))
+    detected_wins = search_windows(img, windows, classifier, feature_scaler, feature_cfg, accept_score)
+    return detected_wins
 
 # Define a function that takes an image,
 # start and stop positions in both x and y,
@@ -168,7 +174,7 @@ def get_slide_windows(img, x_start_stop_=(None, None), y_start_stop_=(None, None
 
 # Define a function you will pass an image
 # and the list of windows to be searched (output of get_slide_windows())
-def search_windows(img, windows, clf, scaler, feature_cfg):
+def search_windows(img, windows, clf, scaler, feature_cfg, accept_score):
     # 1) Create an empty list to receive positive detection windows
     postive_windows = []
     # 2) Iterate over all windows in the list
@@ -180,9 +186,10 @@ def search_windows(img, windows, clf, scaler, feature_cfg):
         # 5) Scale extracted features to be fed to classifier
         test_features = scaler.transform(np.array(features).reshape(1, -1))
         # 6) Predict using your classifier
-        prediction = clf.predict(test_features)
-        # 7) If positive (prediction == 1) then save the window
-        if prediction == 1:
+        # prediction = clf.predict(test_features)
+        # # 7) If positive (prediction == 1) then save the window
+        # if prediction == 1:
+        if clf.decision_function(test_features) > accept_score:
             postive_windows.append(window)
     # 8) Return windows for positive detections
     return postive_windows

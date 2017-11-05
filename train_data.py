@@ -37,7 +37,8 @@ def load_dataset(force_reload=False):
         return dataset["features"], dataset["labels"], feature_scaler
 
     t_start = time.time()
-    vehicle_dirs_name = ["GTI_Far", "GTI_Left", "GTI_MiddleClose", "GTI_RIGHT", "KITTI_extracted"]
+    # vehicle_dirs_name = ["GTI_Far", "GTI_Left", "GTI_MiddleClose", "GTI_Right", "KITTI_extracted", "extra", "extra1"]
+    vehicle_dirs_name = ["GTI_Far", "GTI_Left", "GTI_MiddleClose", "GTI_Right", "KITTI_extracted"]
     vehicle_dirs_path = [osp.join(dataset_dir, "vehicles", dir_name) for dir_name in vehicle_dirs_name]
     vehicle_features = []
     for vehicle_dir in vehicle_dirs_path:
@@ -48,6 +49,7 @@ def load_dataset(force_reload=False):
     print("vehicle feature len: %d" % len(vehicle_features[0]))
 
     t_start = time.time()
+    # non_vehicle_dirs_name = ["GTI", "Extras", "extra"]
     non_vehicle_dirs_name = ["GTI", "Extras"]
     non_vehicle_dirs_path = [osp.join(dataset_dir, "non-vehicles", dir_name) for dir_name in non_vehicle_dirs_name]
     non_vehicle_features = []

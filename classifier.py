@@ -3,7 +3,7 @@
 
 from train_data import load_dataset, load_feature_scaler
 from feature_utils import draw_boxes, single_window_features
-from sliding_window import sliding_window_search
+from sliding_window import sliding_window_search, slow_sliding_window_search
 from configure import sliding_window_cfg, default_feature_cfg
 
 import cv2
@@ -101,7 +101,9 @@ def test_one_frame(img_path):
         x_start = x_start_stops[i][0]
         x_stop = x_start_stops[i][1]
         boxes = sliding_window_search(img, y_start, y_stop, x_start, x_stop, scale,
-                                      classifier, feature_scaler, default_feature_cfg)
+                                      classifier, feature_scaler, default_feature_cfg, 0.8)
+        # boxes = slow_sliding_window_search(img, y_start, y_stop, x_start, x_stop, scale,
+        #                                    classifier, feature_scaler, default_feature_cfg)
         detected_boxes.extend(boxes)
 
     draw_boxes(img_for_draw, detected_boxes)
@@ -124,7 +126,7 @@ def test_one_sample(img_path):
     print("%s: %d" % (img_path, label))
 
 if __name__ == "__main__":
-    test_img_list = glob.glob("test_images/mytest*.jpg")
+    test_img_list = glob.glob("test_images/white_loss*.jpg")
     for test_img_path in test_img_list:
         test_one_frame(test_img_path)
     #test_one_frame("/home/daiguozhou/girl.jpg")

@@ -60,6 +60,9 @@ def convert_color(bgr_img, color_space='BGR'):
             converted_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2YUV)
         elif color_space == 'YCrCb':
             converted_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2YCrCb)
+        elif color_space == "Gray":
+            converted_img = cv2.cvtColor(bgr_img, cv2.COLOR_RGB2GRAY)
+            converted_img = np.expand_dims(converted_img, 2)
         else:
             converted_img = np.copy(bgr_img)
     else:
@@ -125,6 +128,7 @@ def extract_train_features(train_image_list, feature_cfg):
         # Read in each one by one
         image = cv2.imread(path)
         file_features = single_window_features(image, feature_cfg)
+        # assert file_features.shape[0] == 9636, "%s feature error" % path
         features.append(file_features)
     # Return list of feature vectors
     return features

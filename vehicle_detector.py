@@ -20,8 +20,8 @@ from feature_utils import draw_boxes
 class VehicleDetector(object):
     def __init__(self):
         self._heat_maps = []
-        self._heat_threshold = 5
-        self._max_kept = 5
+        self._heat_threshold = 24
+        self._max_kept = 8
         self._classifier = get_classifier()
         self._feature_scaler = load_feature_scaler()
         self._frame_id = 0
@@ -46,7 +46,7 @@ class VehicleDetector(object):
             x_start = x_start_stops[i][0]
             x_stop = x_start_stops[i][1]
             boxes = sliding_window_search(bgr_img, y_start, y_stop, x_start, x_stop, scale,
-                                          self._classifier, self._feature_scaler, default_feature_cfg)
+                                          self._classifier, self._feature_scaler, default_feature_cfg, 0.85)
             if len(boxes) > 0:
                 detected_boxes.extend(boxes)
 
@@ -58,8 +58,6 @@ class VehicleDetector(object):
                 # Add += 1 for all pixels inside each bbox
                 # Assuming each "box" takes the form ((x1, y1), (x2, y2))
                 heat_map[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
-            # # remove those only detected once
-            heat_map[heat_map <= 1] = 0
             self.append_heat_map(heat_map)
             #############################################
             # for debugging only
@@ -106,6 +104,11 @@ class VehicleDetector(object):
             nonzerox = np.array(nonzero[1])
             # Define a bounding box based on min/max x and y
             bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+            w = bbox[1][0] - bbox[0][0] + 1
+            h = bbox[1][1] - bbox[0][1] + 1
+            # ignore portrait or very small box
+            if (0.75 * h) > w or h <= 30 or w <= 30:
+                continue
             # Draw the box on the image
             cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
         # Return the image
@@ -123,7 +126,7 @@ def get_frame_process_func():
 
 if __name__ == "__main__":
     dir_of_this_file = osp.dirname(osp.abspath(__file__))
-    # default_video_file = osp.join(dir_of_this_file, "test_video.mp4")
+    # default_video_file = osp.join(dir_of_this_file, "white_failed.mp4")
     default_video_file = osp.join(dir_of_this_file, "project_video.mp4")
 
     parser = argparse.ArgumentParser("vehicle detector")
